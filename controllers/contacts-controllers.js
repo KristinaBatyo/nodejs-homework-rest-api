@@ -1,18 +1,18 @@
 const { HttpError } = require("../helpers");
-const contactsService = require("../models/index");
+const {Contact} = require("../models/contact")
 const { ctrlWrapper } = require("../decorators");
 
 
 
 const getAllContacts = async (req, res) => {
-        const result = await contactsService.listContacts();
+        const result = await Contact.find();
         res.json(result);
 
 };
 
 const getContactsById = async (req, res) => {
         const { contactId } = req.params;
-        const result = await contactsService.getContactById(contactId);
+        const result = await Contact.findById(contactId);
         if (!result) {
             throw HttpError(404, `Contact with ${contactId} not found`);
         }
@@ -20,23 +20,34 @@ const getContactsById = async (req, res) => {
 }
 
 const addContacts = async (req, res) => {
-        const result = await contactsService.addContact(req.body)
+        const result = await Contact.create(req.body);
         res.status(201).json(result)
 
 };
 
 const updateContactsById = async (req, res) => {
       const { contactId } = req.params;
-      const result = await contactsService.updateContacts(contactId, req.body);
+      const result = await Contact.findByIdAndUpdate(contactId, req.body, {new: true});
       if (!result) {
         throw HttpError(404, `Contact with ${contactId} not found`);
       }
       res.json(result);
 };
 
+const updateFavoriteById = async (req, res) => {
+  const { contactId } = req.params;
+  const result = await Contact.findByIdAndUpdate(contactId, req.body, {
+    new: true,
+  });
+  if (!result) {
+    throw HttpError(404, `Contact with ${contactId} not found`);
+  }
+  res.json(result);
+};
+
 const deleteContactsById = async (req, res) => {
   const { contactId } = req.params;
-  const result = await contactsService.removeContact(contactId);
+  const result = await Contact.findByIdAndDelete(contactId);
   if (!result) {
     throw HttpError(404, `Contact with ${contactId} not found`);
   }
@@ -50,5 +61,6 @@ module.exports = {
   getContactsById: ctrlWrapper(getContactsById),
   addContacts: ctrlWrapper(addContacts),
   updateContactsById: ctrlWrapper(updateContactsById),
+  updateFavoriteById: ctrlWrapper(updateFavoriteById),
   deleteContactsById: ctrlWrapper(deleteContactsById),
 };
