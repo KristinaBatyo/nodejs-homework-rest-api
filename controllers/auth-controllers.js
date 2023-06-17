@@ -3,6 +3,10 @@ const { HttpError } = require("../helpers");
 const { User } = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const fs = require("fs/promises");
+const path = require("path");
+const jimp = require("jimp");
 
 
 const register = async (req, res) => {
@@ -13,7 +17,12 @@ const register = async (req, res) => {
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
-    const result = await User.create({ ...req.body, password: hashPassword });
+    const avatarURL = gravatar.url(email);
+    const result = await User.create({
+      ...req.body,
+      password: hashPassword,
+      avatarURL,
+    });
 
     res.status(201).json({
         name: result.name,
@@ -22,6 +31,8 @@ const register = async (req, res) => {
 };
 
 const { SECRET_KEY } = process.env;
+
+const avatarDir = path.join(__dirname, "../", "public", "avatars")
 
 const login = async (req, res) => {
     const { email, password } = req.body;
@@ -43,7 +54,7 @@ const login = async (req, res) => {
     res.json({
         token,
     })
-}
+};
 
 const getCurrent = async (req, res) => {
     const { name, email } = req.user;
@@ -51,14 +62,29 @@ const getCurrent = async (req, res) => {
         name,
         email
     })
-}
+};
 
 const logout = async (req, res) => {
     const { _id } = req.user;
     await User.findByIdAndUpdate(_id, { token: "" });
     res.json({
-      message: "Logout success",
+        message: "Logout success",
     });
+};
+
+const updateAvatar = async (req, res) => {
+    const { _id } = req.user;
+    const { path: tempUpload, filename } = req.file;
+    const avatarName = `${_id}_${filename}`;
+    const resultUpload = path.join(avatarDir, avatarName);
+    await fs.rename(tempUpload, resultUpload);
+    const avatar = await jimp.read(resultUpload);
+    avatar.resize(250, 250).write(resultUpload);
+
+    const avatarUrl = path.join("avatars", avatarName);
+    await User.findByIdAndUpdate(_id, { avatarUrl });
+    await 
+    res.json ({avatarUrl})
 }
 
 module.exports = {
@@ -66,4 +92,5 @@ module.exports = {
   login: ctrlWrapper(login),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };
